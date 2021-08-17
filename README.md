@@ -11,7 +11,13 @@ Google Trends data is freely available, but with some caveats:
 Clone this repo:
 
 ```bash
-git clone ""
+git clone "https://github.com/baggiponte/google-trends.git"
+```
+
+Or, when using GitHub CLI:
+
+```bash
+gh repo clone baggiponte/google-trends
 ```
 
 And clone the environment:
@@ -24,7 +30,7 @@ conda create -f environment.yml
 
 ## Repo Structure
 
-* `Jupyter/kernels/google-trends` contains the kernel specifications for adding the environment as a Jupyter Kernel.
+* `Jupyter/kernels/google-trends` contains the kernel specifications for adding the environment as a Jupyter Kernel. See [here](https://ipython.readthedocs.io/en/latest/install/kernel_install.html) as reference.
 
 ## Project Roadmap
 

@@ -1,0 +1,14 @@
+{
+ "argv": [
+  "/Users/luca/.pyenv/versions/miniconda3-latest/envs/google-trends/bin/python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "Google Trends Data Retrieval",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ }
+}
