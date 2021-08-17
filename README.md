@@ -22,6 +22,10 @@ conda create -f environment.yml
 
 :warning: `conda` does not export environments in a format compatible across different OSes, such as Microsoft Winows and macOS.
 
+## Repo Structure
+
+* `Jupyter/kernels/google-trends` contains the kernel specifications for adding the environment as a Jupyter Kernel.
+
 ## Project Roadmap
 
 * Get started with PyTrends
