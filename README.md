@@ -32,6 +32,12 @@ conda create -f environment.yml
 
 * `Jupyter/kernels/google-trends` contains the kernel specifications for adding the environment as a Jupyter Kernel. See [here](https://ipython.readthedocs.io/en/latest/install/kernel_install.html) as reference.
 
+## References
+
+The original article I am following comes from [Towards Data Science](https://towardsdatascience.com/reconstruct-google-trends-daily-data-for-extended-period-75b6ca1d3420).The original code comes from the [repo](https://github.com/qztseng/google-trends-daily) that the author of the article made.
+
+* [Google Trends FAQ](https://support.google.com/trends/answer/4365533?hl=en&ref_topic=6248052)
+
 ## Project Roadmap
 
 * Get started with PyTrends
