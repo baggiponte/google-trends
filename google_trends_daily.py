@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # for function type stubs
-from typing import List, Union
+# from typing import List, Union
 
 # for datetime
 from datetime import datetime, timedelta
@@ -60,7 +60,7 @@ def get_daily_trend(
     gprop: str = "",
     delta: int = 269,
     overlap: int = 100,
-    sleep: int = 0,
+    sleep_for: int = 0,
     tz: int = 0,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -136,7 +136,7 @@ def get_daily_trend(
         end_d -= delta - overlap
         itr_d -= delta - overlap
         # in case of short query interval getting banned by server
-        sleep(sleep)
+        sleep(sleep_for)
 
     df.sort_index(inplace=True)
     ol.sort_index(inplace=True)
@@ -194,26 +194,3 @@ def get_daily_trend(
     df[keyword] = (100 * df[keyword] / df[keyword].max()).round(decimals=0)
 
     return df
-
-
-# to finish:
-def retrieve_trend_series(
-    trendreq,
-    keyword: Union[List[str], str],
-    window: Union[List[int], int],
-    start_date: str,
-    end_date: str,
-) -> pd.DataFrame:
-
-    df = pd.DataFrame()
-
-    for size in window:
-
-        col = f"{keyword}_{size}"
-        console.print(
-            f"Retrieving Trends for {keyword} with overlapping window of size {size}"
-        )
-
-        df[col] = get_daily_trend(
-            trendreq, keyword=keyword, start=start_date, end=end_date, overlap=size
-        ).drop()
