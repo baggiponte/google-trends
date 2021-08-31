@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Load Libraries
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, message = FALSE, 
+                      echo = TRUE, dpi = 300, cache.lazy = FALSE,
+                      tidy = "styler", fig.width = 8, fig.height = 5)
+```
+
+```{r libraries, warning=FALSE}
+# for data retrieval
+library(gtrendsR)
+
+# essential for data manipulation
+library(tidyverse)
+
+# render markdown in plots
+library(ggtext)
+
+# arrange plot distributions
+library(patchwork)
+
+# workflow management
+library(here)
+here::i_am("gtrends.Rmd")
+
+# fonts
+library(showtext)
+
+font_add_google("Yanone Kaffeesatz", # name of the Google Font
+                "Yanone Kaffeesatz") # name that will be used in R
+font_add_google("Fira Sans", "Fira Sans")
+
+showtext_auto()
+
+theme_set(theme_minimal(base_family = "Fira Sans"))
+```
+
+# Test `{gtrendsR}`
+
+By default, the function retrieves data for the past 5 years. We can specify to retrieve the last 3 months:
+
+```{r}
+draghi_test <- gtrends("Mario Draghi", time='today 3-m')$interest_over_time %>%
+  as_tibble()
+
+draghi_test
+```
+
+Also by using a time span formatted as `%Y-%m-%d %Y-%m-%d`. The largest interval for retrieving daily data is 9 months.
+
+```{r}
+gtrends("Mario Draghi", time='2020-12-02 2021-08-28')$interest_over_time %>%
+  as_tibble()
+```
+
+## Write a Function to Slide Windows by Nine Months
+
+We need a function that works like this:
+
+* Takes in two strings, representing the start and the end date of the timespan of interest
+* Takes the start date and adds 9 months
+* Returns a timespan (string format)
+
+```{r}
+# input dates
+start <- "2012-01-01"
+end <- "2021-08-28"
+
+# parse them as datetime objects - needed for adding days
+start_date <- start %>% lubridate::ymd()
+end_date <- end %>% lubridate::ymd()
+
+# create chunks
+chunk_start <- start_date
+chunk_end <- start_date + lubridate::days(269)
+
+make_timespan <- function(start_date, end_date) {
+  glue::glue("{start_date} {end_date}")
+}
+
+test_span <- make_timespan(chunk_start, chunk_end)
+```
+
+Then we use this to retrieve the data:
+
+```{r}
+gtrends("Mario Draghi", time=test_span)$interest_over_time %>%
+  as_tibble()
+```
+
