@@ -45,10 +45,10 @@ theme_set(theme_minimal(base_family = "Fira Sans"))
 By default, the function retrieves data for the past 5 years. We can specify to retrieve the last 3 months:
 
 ```{r}
-draghi_test <- gtrends("Mario Draghi", time='today 3-m')$interest_over_time %>%
+test_draghi <- gtrends("Mario Draghi", time='today 3-m')$interest_over_time %>%
   as_tibble()
 
-draghi_test
+test_draghi
 ```
 
 Also by using a time span formatted as `%Y-%m-%d %Y-%m-%d`. The largest interval for retrieving daily data is 9 months.
@@ -57,6 +57,17 @@ Also by using a time span formatted as `%Y-%m-%d %Y-%m-%d`. The largest interval
 gtrends("Mario Draghi", time='2020-12-02 2021-08-28')$interest_over_time %>%
   as_tibble()
 ```
+
+This is the largest window for which I can retrieve daily data. Let's see its length:
+
+```{r}
+test_start <- lubridate::ymd('2020-12-02')
+test_end <- lubridate::ymd('2021-08-28')
+
+test_end - test_start
+```
+
+This is the largest window we can use to retrieve the data.
 
 ## Write a Function to Slide Windows by Nine Months
 
@@ -75,21 +86,191 @@ end <- "2021-08-28"
 start_date <- start %>% lubridate::ymd()
 end_date <- end %>% lubridate::ymd()
 
+# create window for sliding
+window <- lubridate::days(269)
+
 # create chunks
 chunk_start <- start_date
-chunk_end <- start_date + lubridate::days(269)
+chunk_end <- start_date + window
 
 make_timespan <- function(start_date, end_date) {
   glue::glue("{start_date} {end_date}")
 }
 
-test_span <- make_timespan(chunk_start, chunk_end)
+first_span <- make_timespan(chunk_start, chunk_end)
 ```
 
 Then we use this to retrieve the data:
 
 ```{r}
-gtrends("Mario Draghi", time=test_span)$interest_over_time %>%
+first_fetch <- gtrends("Mario Draghi", time=first_span)$interest_over_time %>%
   as_tibble()
+
+first_fetch %>% head()
+```
+
+Now, what we want to do is to retrieve the row where the value of hits is maximum:
+
+```{r}
+first_fetch %>% 
+  filter(
+    hits == max(hits)
+  )
+```
+
+And extract the date:
+
+```{r}
+new_start_date <- first_fetch %>% 
+  filter(
+    hits == max(hits)
+  ) %>% 
+  pull(date) %>% lubridate::ymd()
+
+new_start_date
+```
+
+This date becomes the new starting point for another data retrieval:
+
+```{r}
+new_timespan <- make_timespan(new_start_date, new_start_date + window)
+
+new_fetch <- gtrends("Mario Draghi", time=new_timespan)$interest_over_time %>% as_tibble()
+
+new_fetch %>% head()
+```
+
+Now we need to scale the values on `2012-09-06` and scale the newly fetched series:
+
+```{r}
+ratio <- new_fetch[[1,2]] / 100
+
+new_fetch %>% 
+  mutate(
+    hits = (hits / ratio) %>% round()
+  )
+```
+
+And now we are ready to reiterate the procedure:
+
+```{r}
+new_fetch %>% 
+  mutate(
+    hits = (hits / ratio) %>% round()
+  ) %>% 
+  filter(
+    hits == max(hits)
+  )
+```
+
+# Turn the procedure into a series of functions
+
+The iterative procedure is:
+
+1. Retrieve the first chunk.
+  * Turn `hits` into numeric integers from 1 to 100.
+2. Find the date of the local chunk maximum. This will be the new chunk starting date.
+3. Create a new timespan from the new starting date.
+3. Retrieve the largest subsequent chunk.
+4. Compute the ratio to scale the newer chunk with respect to the older one.
+5. Scale the newer chunk.
+6. Append the newest rows.
+7. Scale the whole series back to the range 1-100.
+8. Go back to 2.
+
+```{r}
+# copied here for having everything in one place
+make_timespan <- function(start_date, end_date) {
+  glue::glue("{start_date} {end_date}")
+}
+
+retrieve_data <- function(keyword, timespan) {
+  gtrends(keyword, time = timespan)$interest_over_time %>%
+      as_tibble() %>% 
+      select(-geo, -gprop, -category)
+}
+
+fetch_local_max_date <- function(older_chunk) {
+  older_chunk %>% 
+    filter(
+      hits == max(hits)
+    ) %>% 
+    pull(date) %>% lubridate::ymd()
+}
+
+scale_series <- function(newer_chunk) {
+  
+  # compute the ratio used to scale the newest series
+  ratio <- newer_chunk[[1,2]] / 100
+  
+  newer_chunk %>% 
+    mutate(hits = (hits / ratio) %>% round())
+}
+
+concatenate_series <- function(older_chunk, newer_chunk) {
+  
+  # define the split date to drop the observation of the older chunk
+  split_date <- fetch_local_max_date(older_chunk)
+  
+  older_chunk %>% 
+    # keep dates before the split date
+    filter(date < split_date) %>% 
+    # append newest rows
+    bind_rows(newer_chunk) %>% 
+    # scale the whole series
+    mutate(hits = hits / max(hits) * 100)
+}
+
+retrieve_daily_data <- function(start, end, keyword) {
+  
+  # parse them as datetime objects - needed for adding days
+  start_date <- start %>% lubridate::ymd()
+  end_date <- end %>% lubridate::ymd()
+  
+  # create window for sliding
+  window <- lubridate::days(260)
+  
+  # create chunk starting and ending dates
+  chunk_start <- start_date
+  chunk_end <- start_date + window
+  
+  # define span
+  chunk_span <- make_timespan(chunk_start, chunk_end)
+  
+  # first retrieval
+  print(glue::glue("Retrieving data from {chunk_start} to {chunk_end}"))
+  first_chunk <- retrieve_data(keyword, chunk_span)
+  
+  loop = 0
+  while (chunk_start < end_date) {
+    
+    loop = loop + 1
+        # shift time window
+    chunk_start <- fetch_local_max_date(first_chunk)
+    chunk_end <- chunk_start + window
+    
+    if (chunk_end >= end_date) {
+      chunk_end == end_date
+    }
+    
+    # define new span
+    chunk_span <- make_timespan(chunk_start, chunk_end)
+    
+    # print some info
+    print(glue::glue("Loop {loop}: retrieving data from {chunk_start} to {chunk_end}"))
+    
+    # perform another retrieval
+    second_chunk <- retrieve_data(keyword, chunk_span) %>% 
+      scale_series()
+    
+    first_chunk <- concatenate_series(first_chunk, second_chunk)
+  }
+  
+  return(first_chunk)
+}
+```
+
+```{r}
+retrieve_daily_data(start = "2012-01-01", end = "2021-08-28", keyword="Mario Draghi")
 ```
 
