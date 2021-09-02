@@ -19,26 +19,9 @@ library(gtrendsR)
 library(tidyverse)
 library(snakecase)
 
-# render markdown in plots
-library(ggtext)
-
-# arrange plot distributions
-library(patchwork)
-
 # workflow management
 library(here)
 here::i_am("gtrends.Rmd")
-
-# fonts
-library(showtext)
-
-font_add_google("Yanone Kaffeesatz", # name of the Google Font
-                "Yanone Kaffeesatz") # name that will be used in R
-font_add_google("Fira Sans", "Fira Sans")
-
-showtext_auto()
-
-theme_set(theme_minimal(base_family = "Fira Sans"))
 ```
 
 # Test `{gtrendsR}`
