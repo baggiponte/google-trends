@@ -44,11 +44,9 @@ theme_set(theme_minimal(base_family = "Fira Sans"))
 # Load Data
 
 ```{r}
-keywords <- read_csv('data/keywords.csv')
-```
+keywords_volume <- read_csv('data/keywords.csv')
 
-```{r}
-keywords %>% head()
+keywords_volume %>% head()
 ```
 
 ```{r}
@@ -67,6 +65,23 @@ keywords %>%
 ```
 
 ```{r}
+keywords <- c("Mario Draghi", "Christine Lagarde", "European Central Bank", "Euro")
+span <- "2012-01-01 2021-08-28"
 
+for (keyword in keywords) {
+  print(glue::glue("Retrieving {keyword} for {span}"))
+  assign(
+      glue::glue("{snakecase::to_snake_case(keyword)}_gtrends"),
+      gtrends(keyword, time=span)$interest_over_time
+    )
+}
+```
+
+```{r}
+gtrends_data <- mario_draghi_gtrends %>% 
+  bind_rows(christine_lagarde_gtrends) %>% 
+  bind_rows(euro_gtrends) %>% 
+  bind_rows(european_central_bank_gtrends) %>%
+  select(1:3)
 ```
 
