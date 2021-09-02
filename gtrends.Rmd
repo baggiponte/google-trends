@@ -245,3 +245,14 @@ for (keyword in keywords) {
 }
 ```
 
+# Data Wrangling
+
+```{r}
+mario_draghi %>% 
+  bind_rows(christine_lagarde) %>% 
+  bind_rows(euro) %>% 
+  bind_rows(european_central_bank) -> final_dataset
+
+final_dataset %>% write_csv(here("data", "keywords.csv"))
+```
+

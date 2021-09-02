@@ -155,7 +155,3 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
   return(first_chunk)
   
 }
-
-test <- retrieve_daily_data(start = "2012-01-01", end = "2021-08-28", keyword="Mario Draghi")
-
-test %>% ggplot() + geom_line(aes(date, hits))
