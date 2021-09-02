@@ -25,32 +25,12 @@ retrieve_data <- function(keyword, timespan, loop_number) {
     mutate(
       # keep track of the fetch
       loop = loop_number,
-      # hits = case_when(
-      #   # if character appears, turn into 0
-      #   hits == "<1" ~ 1,
-      #   hits == 0 ~ 1,
-      #   # add 1 to everything to avoid zeros
-      #   TRUE ~ hits
-      # )
+      # convert strings into integers
+      hits = case_when(
+        hits == "<1" ~ "1",
+        TRUE ~ hits %>% as.character()
+      ) %>% as.integer() + 1
     )
-}
-
-fetch_local_max <- function(older_chunk) {
-  # -----------------------------------------------------------------------
-  # given a google trend retrieved series, returns a tibble
-  # with two values: the max value of the series and the corresponding date
-  # -----------------------------------------------------------------------
-  
-  local_max_date <- older_chunk %>% 
-    filter(hits == max(hits)) %>% 
-    pull(date) %>% lubridate::ymd()
-  
-  local_max_hits <- older_chunk %>% 
-    filter(hits == max(hits)) %>% 
-    pull(hits)
-  
-  return(tibble(max_date = local_max_date, max_hits = local_max_hits))
-  
 }
 
 scale_series <- function(older_chunk, newer_chunk) {
@@ -66,14 +46,14 @@ scale_series <- function(older_chunk, newer_chunk) {
     stop(
       "The last date of the older chunk does not correspond to the first date of the newer chunk",
       call. = FALSE
-      )
+    )
   } 
   
   # compute the ratio used to scale the newest series
   ratio <- newer_chunk$hits %>% head(1) / older_chunk$hits %>% tail(1)
   
   newer_chunk %>% 
-    mutate(hits = (hits / ratio) %>% round())
+    mutate(hits = (hits / ratio) %>% ceiling())
 }
 
 concatenate_series <- function(older_chunk, newer_chunk) {
@@ -85,11 +65,11 @@ concatenate_series <- function(older_chunk, newer_chunk) {
   # ---------------------------------------------------------------------------------
   
   # define the split date to drop the observation of the older chunk
-  split_date <- fetch_local_max(older_chunk)$max_date
+  split_date <- older_chunk$date %>% tail(1)
   
   newer_chunk <- newer_chunk %>%
     # scale newer chunk relative to the older one
-    scale_series(older_chunk %>% filter(date <= split_date))
+    scale_series(older_chunk, .)
   
   older_chunk %>%
     # take out the last row
@@ -97,7 +77,7 @@ concatenate_series <- function(older_chunk, newer_chunk) {
     # append rows
     bind_rows(newer_chunk) %>% 
     # scale the whole series
-    mutate(hits = (hits / max(hits) * 100) %>% round())
+    mutate(hits = (hits / max(hits) * 100) %>% ceiling())
 }
 
 retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
@@ -122,7 +102,6 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
   
   # define span
   chunk_span <- make_timespan(chunk_start, chunk_end)
-  old_span <- chunk_span
   
   # define variable to count iterations
   loop <- 0
@@ -135,7 +114,7 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
   # 2. initialise loop to retrieve data
   # ********************************
   
-  while (chunk_start < end_date) {
+  while (chunk_end < end_date) {
     
     loop <- loop + 1  
     
@@ -144,7 +123,7 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
     # *************************
     
     if (loop %% 15 == 0) {
-      sleep_for <- 60 + runif(1,1,20) %>% round()
+      sleep_for <- 60 + runif(1,1,20) %>% ceiling()
       print(glue::glue("Sleep for {sleep_for} seconds to prevent ban"))
       Sys.sleep(sleep_for)
     }
@@ -153,23 +132,8 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
     # shift time window
     # *****************
     
-    
-    # TL;DR: if the series starts to loop over itself, then advance it manually
-    # ====
-    # The procedure works like this:
-    # Retrieve the first chunk; locate the maximum;
-    # Replace the start date with the maximum date;
-    # Retrieve a new series from that date; locate the maximum; ...
-    # When the amount of searches is declining, the maximum will always be in the same place.
-    # This actually stops the retrieval from advancing.
-    # ====
-    
-    if (chunk_start >= fetch_local_max(first_chunk)$max_date) {
-      chunk_start <- chunk_start + window
-    } else {
-      chunk_start <- fetch_local_max(first_chunk)$max_date
-    }
-    
+    chunk_start <- chunk_start + window
+
     # if chunk_end > end_date, chunk_end = end_date
     if ( (chunk_start + window) > end_date ) {
       chunk_end <- end_date
@@ -185,13 +149,13 @@ retrieve_daily_data <- function(start, end, keyword, verbose = FALSE) {
     second_chunk <- retrieve_data(keyword, chunk_span, loop)
     
     first_chunk <- concatenate_series(first_chunk, second_chunk)
-    
-    old_span <- chunk_span
-    
+
   }
   
   return(first_chunk)
   
 }
 
-retrieve_daily_data(start = "2012-01-01", end = "2021-08-28", keyword="Mario Draghi")
+test <- retrieve_daily_data(start = "2012-01-01", end = "2021-08-28", keyword="Mario Draghi")
+
+test %>% ggplot() + geom_line(aes(date, hits))
