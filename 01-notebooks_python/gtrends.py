@@ -65,7 +65,7 @@ def _fetch_data(
         else:
             fetched = True
 
-    return trendreq.interest_over_time() + 1
+    return trendreq.interest_over_time().drop(columns="isPartial", axis=1).add(1)
 
 
 def _make_timeframe(start_date: datetime, end_date: datetime) -> str:
@@ -115,90 +115,90 @@ def _concat_chunk(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFra
     return pd.concat([older_df[:-1], recent_df])
 
 
-def get_daily_trend(
-        trendreq,
-        keyword: str,
-        start: str,
-        end: str,
-        cat: int = 0,
-        geo: str = "",
-        gprop: str = "",
-        window: int = 90,
-        verbose: bool = False,
-) -> pd.DataFrame:
-    """Stitch and scale consecutive daily trends data between start and end date.
-    This function will first download piece-wise google trends data and then
-    scale each piece using the overlapped period.
+# def get_daily_trend(
+#         trendreq,
+#         keyword: str,
+#         start: str,
+#         end: str,
+#         cat: int = 0,
+#         geo: str = "",
+#         gprop: str = "",
+#         window: int = 90,
+#         verbose: bool = False,
+# ) -> pd.DataFrame:
+#     """Stitch and scale consecutive daily trends data between start and end date.
+#     This function will first download piece-wise google trends data and then
+#     scale each piece using the overlapped period.
 
-        Parameters
-        ----------
-        trendreq: TrendReq
-            a pytrends TrendReq object
-        keyword: str
-            currently only support single keyword, without bracket
-        start: str
-            starting date in string format:YYYY-MM-DD (e.g.2017-02-19)
-        end: str
-            ending date in string format:YYYY-MM-DD (e.g.2017-02-19)
-        cat, geo, gprop
-            same as defined in pytrends
-        window: int
-            The length(days) of each timespan fragment for fetching google trends data,
-            need to be <269 in order to obtain daily data.
-        verbose: bool
-            Print verbose output. Defaults to False.
+#         Parameters
+#         ----------
+#         trendreq: TrendReq
+#             a pytrends TrendReq object
+#         keyword: str
+#             currently only support single keyword, without bracket
+#         start: str
+#             starting date in string format:YYYY-MM-DD (e.g.2017-02-19)
+#         end: str
+#             ending date in string format:YYYY-MM-DD (e.g.2017-02-19)
+#         cat, geo, gprop
+#             same as defined in pytrends
+#         window: int
+#             The length(days) of each timespan fragment for fetching google trends data,
+#             need to be <269 in order to obtain daily data.
+#         verbose: bool
+#             Print verbose output. Defaults to False.
 
-    """
+#     """
 
-    # define the format for parsing
-    date_format: str = "%Y-%m-%d"
+#     # define the format for parsing
+#     date_format: str = "%Y-%m-%d"
 
-    # try to convert the strings into datetime.date objects, warn if the format is wrong
-    try:
-        start_date: datetime.date = datetime.strptime(start, date_format).date()
-        end_date: datetime.date = datetime.strptime(end, date_format).date()
-    except SystemExit:
-        sys.exit(f"Please provide start_date and start_time as {date_format}")
+#     # try to convert the strings into datetime.date objects, warn if the format is wrong
+#     try:
+#         start_date: datetime.date = datetime.strptime(start, date_format).date()
+#         end_date: datetime.date = datetime.strptime(end, date_format).date()
+#     except SystemExit:
+#         sys.exit(f"Please provide start_date and start_time as {date_format}")
 
-    # turn delta and overlap into a timedelta
-    window: timedelta = timedelta(days=window)
+#     # turn delta and overlap into a timedelta
+#     window: timedelta = timedelta(days=window)
 
-    # define first chunk start and end dates, from the start of the overall time span
-    chunk_start: datetime.date = start_date
-    chunk_end: datetime.date = start_date + window
+#     # define first chunk start and end dates, from the start of the overall time span
+#     chunk_start: datetime.date = start_date
+#     chunk_end: datetime.date = start_date + window
 
-    # define the DataFrame to store our results
-    retrieved_data: pd.DataFrame = pd.DataFrame()
+#     # define the DataFrame to store our results
+#     retrieved_data: pd.DataFrame = pd.DataFrame()
 
-    # loop until the chunk starting date is bigger than the end date
-    while chunk_start < end_date:
+#     # loop until the chunk starting date is bigger than the end date
+#     while chunk_start < end_date:
 
-        # create the timeframe for searches
-        timespan: str = _make_timeframe(start_date=chunk_start, end_date=chunk_end)
+#         # create the timeframe for searches
+#         timespan: str = _make_timeframe(start_date=chunk_start, end_date=chunk_end)
 
-        if verbose:
-            console.print(f"Fetching '{keyword}' for period: {timespan}")
+#         if verbose:
+#             console.print(f"Fetching '{keyword}' for period: {timespan}")
 
-        # retrieve the first chunk of data
-        chunk: pd.DataFrame = _fetch_data(
-            trendreq, [keyword], timeframe=timespan, cat=cat, geo=geo, gprop=gprop
-        ).drop(columns=["isPartial"], axis=1)
+#         # retrieve the first chunk of data
+#         chunk: pd.DataFrame = _fetch_data(
+#             trendreq, [keyword], timeframe=timespan, cat=cat, geo=geo, gprop=gprop
+#         )
 
-        # combine the chunk with the dataframe to retrieve
-        # if we are in the first iteration, simply concatenate, else scale the values of the more recent chunk
-        if chunk_start == start_date:
-            retrieved_data = pd.concat([retrieved_data, chunk])
-        else:
-            retrieved_data = _concat_chunk(retrieved_data, chunk)
+#         # combine the chunk with the dataframe to retrieve
+#         # if we are in the first iteration, simply concatenate, else scale the values of the more recent chunk
+#         if chunk_start == start_date:
+#             retrieved_data = pd.concat([retrieved_data, chunk])
+#         else:
+#             retrieved_data = _concat_chunk(retrieved_data, chunk)
 
-        # redefine chunk start and chunk end:
-        # take the last index of the retrieved data and cast it to datetime.date
-        chunk_start = retrieved_data.index[-1].date()
-        chunk_end = chunk_start + window
-        if chunk_end > end_date:
-            chunk_end = end_date
+#         # redefine chunk start and chunk end:
+#         # take the last index of the retrieved data and cast it to datetime.date
+#         chunk_start = retrieved_data.index[-1].date()
+#         chunk_end = chunk_start + window
+#         if chunk_end > end_date:
+#             chunk_end = end_date
 
-    return retrieved_data
+#     return retrieved_data
 
 
 def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
@@ -245,7 +245,6 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
         tf = itr_d.strftime('%Y-%m-%d') + ' ' + end_d.strftime('%Y-%m-%d')
         if verbose: print('Fetching \'' + keyword + '\' for period:' + tf)
         temp = _fetch_data(trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop)
-        temp.drop(columns=['isPartial'], inplace=True)
         temp.columns.values[0] = tf
         ol_temp = temp.copy()
         ol_temp.iloc[:, :] = None
@@ -274,7 +273,6 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
     if df.index.max() < init_end_d:
         tf = 'now 7-d'
         hourly = _fetch_data(trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop)
-        hourly.drop(columns=['isPartial'], inplace=True)
 
         # convert hourly data to daily data
         daily = hourly.groupby(hourly.index.date).sum()
