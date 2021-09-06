@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# for exiting loops
-import sys
+# # for exiting loops
+# import sys
 
 # for function type stubs
 from typing import List
@@ -18,20 +18,14 @@ import pandas as pd
 from pytrends.exceptions import ResponseError
 from pytrends.request import TrendReq
 
-# rich for colorful output
-from rich.console import Console
-
-# define rich console:
-console = Console()
-
 
 def _fetch_data(
-        trendreq: TrendReq,
-        kw_list: List[str],
-        timeframe: str = "today 3-m",
-        cat: int = 0,
-        geo: str = "",
-        gprop: str = "",
+    trendreq: TrendReq,
+    kw_list: List[str],
+    timeframe: str = "today 3-m",
+    cat: int = 0,
+    geo: str = "",
+    gprop: str = "",
 ) -> pd.DataFrame:
     """Helper function: retrieves data from Google Trend given the keyword and the timeframe.
     Returns a DataFrame ranging from 1 to 101.
@@ -55,64 +49,64 @@ def _fetch_data(
                 kw_list=kw_list, timeframe=timeframe, cat=cat, geo=geo, gprop=gprop
             )
         except ResponseError as err:
-            console.print(err)
-            console.print(f"Trying again in {60 + 5 * attempts} seconds.")
+            print(err)
+            print(f"Trying again in {60 + 5 * attempts} seconds.")
             sleep(60 + 5 * attempts)
             attempts += 1
             if attempts > 3:
-                console.print("Failed after 3 attemps, abort fetching.")
+                print("Failed after 3 attemps, abort fetching.")
                 break
         else:
             fetched = True
 
-    return trendreq.interest_over_time().drop(columns="isPartial", axis=1).add(1)
+    return trendreq.interest_over_time().drop("isPartial", axis=1).add(1)
 
 
-def _make_timeframe(start_date: datetime, end_date: datetime) -> str:
-    """Returns a string that represents a time span delimited by the input start and end dates.
+# def _make_timeframe(start_date: datetime, end_date: datetime) -> str:
+#     """Returns a string that represents a time span delimited by the input start and end dates.
 
-        Parameters
-        ----------
-        start_date: datetime
-            start date for the timeframe
-        end_date: datetime
-            end date for the timeframe
-    """
-    return start_date.strftime("%Y-%m-%d") + " " + end_date.strftime("%Y-%m-%d")
-
-
-def _compute_ratio(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> int:
-    """Takes the last row of the older dataframe and the first of the recent one and computes the ratio
-    between the volume of the searches.
-
-        Parameters
-        ----------
-        older_df: pd.DataFrame
-            the older DataFrame with Google Trends Data
-        recent_df: pd.DataFrame
-            the newly fetched Google Trends DataFrame
-    """
-
-    return older_df.iloc[-1, 0] / recent_df.iloc[0, 0]
+#         Parameters
+#         ----------
+#         start_date: datetime
+#             start date for the timeframe
+#         end_date: datetime
+#             end date for the timeframe
+#     """
+#     return start_date.strftime("%Y-%m-%d") + " " + end_date.strftime("%Y-%m-%d")
 
 
-def _concat_chunk(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFrame:
-    """Scales the recent dataframe relative to the older one and concatenates the two, dropping the overlapping row
+# def _compute_ratio(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> int:
+#     """Takes the last row of the older dataframe and the first of the recent one and computes the ratio
+#     between the volume of the searches.
 
-            Parameters
-            ----------
-            older_df: pd.DataFrame
-                the older DataFrame with Google Trends Data
-            recent_df: pd.DataFrame
-                the newly fetched Google Trends DataFrame
-    """
+#         Parameters
+#         ----------
+#         older_df: pd.DataFrame
+#             the older DataFrame with Google Trends Data
+#         recent_df: pd.DataFrame
+#             the newly fetched Google Trends DataFrame
+#     """
 
-    ratio = _compute_ratio(older_df, recent_df)
+#     return older_df.iloc[-1, 0] / recent_df.iloc[0, 0]
 
-    # scale the recent df by the ratio
-    older_df /= ratio
 
-    return pd.concat([older_df[:-1], recent_df])
+# def _concat_chunk(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFrame:
+#     """Scales the recent dataframe relative to the older one and concatenates the two, dropping the overlapping row
+
+#             Parameters
+#             ----------
+#             older_df: pd.DataFrame
+#                 the older DataFrame with Google Trends Data
+#             recent_df: pd.DataFrame
+#                 the newly fetched Google Trends DataFrame
+#     """
+
+#     ratio = _compute_ratio(older_df, recent_df)
+
+#     # scale the recent df by the ratio
+#     older_df /= ratio
+
+#     return pd.concat([older_df[:-1], recent_df])
 
 
 # def get_daily_trend(
@@ -177,7 +171,7 @@ def _concat_chunk(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFra
 #         timespan: str = _make_timeframe(start_date=chunk_start, end_date=chunk_end)
 
 #         if verbose:
-#             console.print(f"Fetching '{keyword}' for period: {timespan}")
+#             print(f"Fetching '{keyword}' for period: {timespan}")
 
 #         # retrieve the first chunk of data
 #         chunk: pd.DataFrame = _fetch_data(
@@ -201,9 +195,20 @@ def _concat_chunk(older_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFra
 #     return retrieved_data
 
 
-def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
-                       geo='', gprop='', delta=269, overlap=100, sleep_for=0,
-                       tz=0, verbose=False) -> pd.DataFrame:
+def og_get_daily_trend(
+    trendreq,
+    keyword: str,
+    start: str,
+    end: str,
+    cat=0,
+    geo="",
+    gprop="",
+    delta=269,
+    overlap=100,
+    sleep_for=0,
+    tz=0,
+    verbose=False,
+) -> pd.DataFrame:
     """Stich and scale consecutive daily trends data between start and end date.
     This function will first download piece-wise google trends data and then
     scale each piece using the overlapped period.
@@ -229,8 +234,8 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
             For example, correcting for UTC+8 is 480, and UTC-6 is -360
     """
 
-    start_d = datetime.strptime(start, '%Y-%m-%d')
-    init_end_d = end_d = datetime.strptime(end, '%Y-%m-%d')
+    start_d = datetime.strptime(start, "%Y-%m-%d")
+    init_end_d = end_d = datetime.strptime(end, "%Y-%m-%d")
     init_end_d.replace(hour=23, minute=59, second=59)
     delta = timedelta(days=delta)
     overlap = timedelta(days=overlap)
@@ -242,15 +247,22 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
     ol = pd.DataFrame()
 
     while end_d > start_d:
-        tf = itr_d.strftime('%Y-%m-%d') + ' ' + end_d.strftime('%Y-%m-%d')
-        if verbose: print('Fetching \'' + keyword + '\' for period:' + tf)
-        temp = _fetch_data(trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop)
+        tf = itr_d.strftime("%Y-%m-%d") + " " + end_d.strftime("%Y-%m-%d")
+        if verbose:
+            print("Fetching '" + keyword + "' for period: " + tf)
+        temp = _fetch_data(
+            trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop
+        )
         temp.columns.values[0] = tf
         ol_temp = temp.copy()
         ol_temp.iloc[:, :] = None
         if overlap_start is not None:  # not first iteration
-            if verbose: print('Normalize by overlapping period:' + overlap_start.strftime('%Y-%m-%d'),
-                              end_d.strftime('%Y-%m-%d'))
+            if verbose:
+                print(
+                    "Normalize by overlapping period:"
+                    + overlap_start.strftime("%Y-%m-%d"),
+                    end_d.strftime("%Y-%m-%d"),
+                )
             # normalize using the maximum value of the overlapped period
             y1 = temp.loc[overlap_start:end_d].iloc[:, 0].values.max()
             y2 = df.loc[overlap_start:end_d].iloc[:, -1].values.max()
@@ -262,8 +274,8 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
         ol = pd.concat([ol, ol_temp], axis=1)
         # shift the timeframe for next iteration
         overlap_start = itr_d
-        end_d -= (delta - overlap)
-        itr_d -= (delta - overlap)
+        end_d -= delta - overlap
+        itr_d -= delta - overlap
         # in case of short query interval getting banned by server
         sleep(sleep_for)
 
@@ -271,16 +283,19 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
     ol.sort_index(inplace=True)
     # The daily trend data is missing the most recent 3-days data, need to complete with hourly data
     if df.index.max() < init_end_d:
-        tf = 'now 7-d'
-        hourly = _fetch_data(trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop)
+        tf = "now 7-d"
+        hourly = _fetch_data(
+            trendreq, [keyword], timeframe=tf, cat=cat, geo=geo, gprop=gprop
+        )
 
         # convert hourly data to daily data
         daily = hourly.groupby(hourly.index.date).sum()
 
         # check whether the first day data is complete (i.e. has 24 hours)
-        daily['hours'] = hourly.groupby(hourly.index.date).count()
-        if daily.iloc[0].loc['hours'] != 24: daily.drop(daily.index[0], inplace=True)
-        daily.drop(columns='hours', inplace=True)
+        daily["hours"] = hourly.groupby(hourly.index.date).count()
+        if daily.iloc[0].loc["hours"] != 24:
+            daily.drop(daily.index[0], inplace=True)
+        daily.drop(columns="hours", inplace=True)
 
         daily.set_index(pd.DatetimeIndex(daily.index), inplace=True)
         daily.columns = [tf]
@@ -289,10 +304,17 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
         ol_temp.iloc[:, :] = None
         # find the overlapping date
         intersect = df.index.intersection(daily.index)
-        if verbose: print('Normalize by overlapping period:' + (intersect.min().strftime('%Y-%m-%d')) + ' ' + (
-            intersect.max().strftime('%Y-%m-%d')))
+        if verbose:
+            print(
+                "Normalize by overlapping period:"
+                + (intersect.min().strftime("%Y-%m-%d"))
+                + " "
+                + (intersect.max().strftime("%Y-%m-%d"))
+            )
         # scaling use the overlapped today-4 to today-7 data
-        coef = df.loc[intersect].iloc[:, 0].max() / daily.loc[intersect].iloc[:, 0].max()
+        coef = (
+            df.loc[intersect].iloc[:, 0].max() / daily.loc[intersect].iloc[:, 0].max()
+        )
         daily = (daily * coef).round(decimals=0)
         ol_temp.loc[intersect, :] = 1
 
@@ -304,7 +326,7 @@ def og_get_daily_trend(trendreq, keyword: str, start: str, end: str, cat=0,
     ol = ol.max(axis=1)
     # merge the two dataframe (trend data and overlap flag)
     df = pd.concat([df, ol], axis=1)
-    df.columns = [keyword, 'overlap']
+    df.columns = [keyword, "overlap"]
     # Correct the timezone difference
     df.index = df.index + timedelta(minutes=tz)
     df = df[start_d:init_end_d]
