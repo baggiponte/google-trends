@@ -200,14 +200,14 @@ def og_get_daily_trend(
     keyword: str,
     start: str,
     end: str,
-    cat=0,
-    geo="",
-    gprop="",
-    delta=269,
-    overlap=100,
-    sleep_for=0,
-    tz=0,
-    verbose=False,
+    cat: int = 0,
+    geo: str = "",
+    gprop: str = "",
+    delta: int = 269,
+    overlap: int = 100,
+    sleep_for: int = 0,
+    tz: int = 0,
+    verbose: bool = False,
 ) -> pd.DataFrame:
     """Stich and scale consecutive daily trends data between start and end date.
     This function will first download piece-wise google trends data and then
